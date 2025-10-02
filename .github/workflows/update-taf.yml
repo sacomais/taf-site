@@ -3,10 +3,10 @@
 on:
   schedule:
     - cron: "30 9 * * *"  # todos los días a las 09:30 UTC
-  workflow_dispatch:       # permite ejecutar manualmente
+  workflow_dispatch:
 
 permissions:
-  contents: write          # solo necesita permiso para modificar archivos del repo
+  contents: write
 
 jobs:
   update-taf:
@@ -18,15 +18,21 @@ jobs:
 
       - name: Download TAF file
         run: |
-          mkdir -p public/data
-          curl -s "https://tgftp.nws.noaa.gov/data/forecasts/taf/stations/MSLP.TXT" -o public/data/taf.txt
+          mkdir -p public/data/history
+          curl -s "https://tgftp.nws.noaa.gov/data/forecasts/taf/stations/MSLP.TXT" -o tmp_taf.txt
+
+      - name: Extract TAF of 09:25 UTC
+        run: |
+          day=$(date -u +%d)
+          grep "^TAF MSLP ${day}0925Z" tmp_taf.txt > public/data/taf-today.txt
+          cp public/data/taf-today.txt public/data/history/taf-$(date +%F).txt
 
       - name: Commit changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/data/taf.txt
-          git commit -m "Update TAF data" || echo "No changes to commit"
+          git add public/data/taf-today.txt public/data/history/taf-$(date +%F).txt
+          git commit -m "Update TAF for $(date +%F)" || echo "No changes to commit"
 
       - name: Push changes
         uses: ad-m/github-push-action@v0.6.0

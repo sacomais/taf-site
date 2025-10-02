@@ -2,21 +2,12 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>TAF Diario</title>
+  <title>TAF MSLP</title>
 </head>
 <body>
-  <h1>Reporte TAF</h1>
-  <pre id="taf">Cargando...</pre>
+  <h1>Pronóstico TAF (MSLP)</h1>
+  <pre id="taf">Cargando TAF...</pre>
 
-  <script>
-    fetch("data/taf.txt")
-      .then(res => res.text())
-      .then(text => {
-        document.getElementById("taf").textContent = text;
-      })
-      .catch(err => {
-        document.getElementById("taf").textContent = "Error al cargar TAF";
-      });
-  </script>
+  <script src="js/app.taf.js"></script>
 </body>
 </html>
