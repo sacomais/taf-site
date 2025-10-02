@@ -1,4 +1,3 @@
-# Reescribir netlify.toml sin BOM
-' [build]
+[build]
   publish = "public"
   command = "" 
