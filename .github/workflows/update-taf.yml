@@ -1,0 +1,27 @@
+﻿name: Update TAF
+
+on:
+  schedule:
+    - cron: "30 9 * * *"   # 09:30 UTC todos los días
+  workflow_dispatch:
+
+jobs:
+  update-taf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Fetch TAF
+        run: |
+          mkdir -p public/data
+          curl -s https://tgftp.nws.noaa.gov/data/forecasts/taf/stations/MSLP.TXT -o public/data/taf_raw.txt
+          awk "/0925Z/,/="/ public/data/taf_raw.txt > public/data/taf.txt
+      - name: Commit changes
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+          git add public/data/taf.txt
+          git diff --cached --quiet || git commit -m "Update TAF"
+      - name: Push changes
+        uses: ad-m/github-push-action@v0.6.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}

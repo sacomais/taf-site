@@ -1,0 +1,22 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>TAF Diario</title>
+</head>
+<body>
+  <h1>Reporte TAF</h1>
+  <pre id="taf">Cargando...</pre>
+
+  <script>
+    fetch("data/taf.txt")
+      .then(res => res.text())
+      .then(text => {
+        document.getElementById("taf").textContent = text;
+      })
+      .catch(err => {
+        document.getElementById("taf").textContent = "Error al cargar TAF";
+      });
+  </script>
+</body>
+</html>
