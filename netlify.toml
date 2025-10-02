@@ -1,3 +1,4 @@
-﻿[build]
+﻿# Reescribir netlify.toml sin BOM
+' [build]
   publish = "public"
-  command = ""
+  command = "" ' | Set-Content -Encoding UTF8 netlify.toml
