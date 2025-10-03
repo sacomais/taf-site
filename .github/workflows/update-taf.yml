@@ -1,57 +1,53 @@
-name: update-taf
+name: Update TAF & XLSX
 
 on:
   schedule:
-    - cron: '30 3 * * *'  # Todos los días a las 03:30 UTC
+    # Todos los días a las 0930 UTC
+    - cron: '30 9 * * *'
   workflow_dispatch:
 
 jobs:
-  update:
+  update-taf:
     runs-on: ubuntu-latest
     steps:
-      # 1. Clonar el repo
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Crear carpetas necesarias
-      - name: Crear carpetas
-        run: mkdir -p public/data/history
+      - name: Set up directories
+        run: |
+          mkdir -p public/data/history
 
-      # 3. Descargar TAF
-      - name: Descargar TAF de NOAA
+      - name: Download TAF MSLP
         run: |
           curl -s "https://tgftp.nws.noaa.gov/data/forecasts/taf/stations/MSLP.TXT" -o tmp_taf.txt
           echo "Archivo descargado:"
           head -n 20 tmp_taf.txt
+
+      - name: Extract today's TAF (0325Z)
+        run: |
           day=$(date -u +'%d')
           taf_line=$(grep -m 1 "^TAF MSLP ${day}0325Z" tmp_taf.txt || true)
+          
           if [ -n "$taf_line" ]; then
             echo "$taf_line" > public/data/taf-today.txt
             echo "$taf_line" > "public/data/history/taf-$(date -u +'%Y-%m-%d').txt"
           else
             echo "TAF no disponible aún para las 0325Z de hoy" > public/data/taf-today.txt
           fi
+
           echo "Contenido final del taf-today.txt:"
           cat public/data/taf-today.txt
 
-      # 4. Descargar operaciones.xlsx desde Google Drive a public/
-      - name: Descargar operaciones.xlsx desde Drive
+      - name: Download operaciones.xlsx from Google Drive
         run: |
-          FILE_ID=1VCS87YR2-O4tJLaJJMVAZtBTPYEQG9fQ
-          DEST=public/operaciones.xlsx
-          curl -L -o $DEST "https://drive.google.com/uc?export=download&id=${FILE_ID}"
-          echo "Archivo operaciones.xlsx descargado:"
-          ls -l $DEST
+          curl -L -o public/operaciones.xlsx "https://docs.google.com/uc?export=download&id=${{ secrets.DRIVE_FILE_ID }}"
 
-      # 5. Configurar git
-      - name: Configurar git
+      - name: Commit & push changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      # 6. Hacer commit y push de los archivos
-      - name: Commit y push cambios
-        run: |
           git add public/data/taf-today.txt public/data/history/*.txt public/operaciones.xlsx
-          git commit -m "Update TAF $(date -u +'%Y-%m-%d') y operaciones.xlsx" || echo "No hay cambios que commitear"
+          git commit -m "Update TAF and operaciones.xlsx $(date -u +'%Y-%m-%d')" || echo "No changes to commit"
           git push origin main
