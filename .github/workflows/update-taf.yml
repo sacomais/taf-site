@@ -1,14 +1,14 @@
-name: Update TAF & XLSX
+name: update-taf
 
 on:
   schedule:
-    # Todos los días a las 0930 UTC
-    - cron: '30 9 * * *'
+    - cron: '30 9 * * *'  # 0930 UTC todos los días
   workflow_dispatch:
 
 jobs:
-  update-taf:
+  update:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -17,17 +17,17 @@ jobs:
         run: |
           mkdir -p public/data/history
 
-      - name: Download TAF MSLP
+      - name: Download TAF
         run: |
           curl -s "https://tgftp.nws.noaa.gov/data/forecasts/taf/stations/MSLP.TXT" -o tmp_taf.txt
           echo "Archivo descargado:"
           head -n 20 tmp_taf.txt
 
-      - name: Extract today's TAF (0325Z)
+      - name: Extract today's TAF 0325Z
         run: |
           day=$(date -u +'%d')
           taf_line=$(grep -m 1 "^TAF MSLP ${day}0325Z" tmp_taf.txt || true)
-          
+
           if [ -n "$taf_line" ]; then
             echo "$taf_line" > public/data/taf-today.txt
             echo "$taf_line" > "public/data/history/taf-$(date -u +'%Y-%m-%d').txt"
@@ -38,9 +38,10 @@ jobs:
           echo "Contenido final del taf-today.txt:"
           cat public/data/taf-today.txt
 
-      - name: Download operaciones.xlsx from Google Drive
+      - name: Download operaciones.xlsx
         run: |
-          curl -L -o public/operaciones.xlsx "https://docs.google.com/uc?export=download&id=${{ secrets.DRIVE_FILE_ID }}"
+          # Link de descarga directa de Google Drive
+          curl -L -o public/operaciones.xlsx "https://drive.google.com/uc?export=download&id=1VCS87YR2-O4tJLaJJMVAZtBTPYEQG9fQ"
 
       - name: Commit & push changes
         env:
@@ -48,6 +49,12 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add public/data/taf-today.txt public/data/history/*.txt public/operaciones.xlsx
+          
+          git add public/data/taf-today.txt
+          if compgen -G "public/data/history/*.txt" > /dev/null; then
+            git add public/data/history/*.txt
+          fi
+          git add public/operaciones.xlsx
+          
           git commit -m "Update TAF and operaciones.xlsx $(date -u +'%Y-%m-%d')" || echo "No changes to commit"
           git push origin main
