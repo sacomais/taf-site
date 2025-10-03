@@ -1,50 +1,47 @@
 name: update
 
 on:
-  workflow_dispatch:   # permite ejecutar manualmente desde GitHub
   schedule:
-    - cron: '30 9 * * *'  # todos los días a las 09:30 UTC
+    - cron: '30 3 * * *' # 03:30 UTC todos los días
+  workflow_dispatch: # permite correr manualmente
 
 jobs:
-  update:
+  update-site:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT }} # usa tu PAT para checkout
 
-    - name: Crear carpeta data
-      run: mkdir -p public/data
+      - name: Crear carpeta public/data
+        run: mkdir -p public/data
 
-    - name: Descargar TAF
-      run: |
-        curl -s "https://tgftp.nws.noaa.gov/data/forecasts/taf/stations/MSLP.TXT" -o tmp_taf.txt
-        day=$(date -u +'%d')
-        taf_line=$(grep -m 1 "^TAF MSLP ${day}0325Z" tmp_taf.txt || true)
+      - name: Descargar TAF
+        run: |
+          curl -s "https://tgftp.nws.noaa.gov/data/forecasts/taf/stations/MSLP.TXT" -o tmp_taf.txt
+          day=$(date -u +'%d')
+          taf_line=$(grep -m 1 "^TAF MSLP ${day}0325Z" tmp_taf.txt || true)
+          if [ -n "$taf_line" ]; then
+            echo "$taf_line" > public/data/taf-today.txt
+          else
+            echo "TAF no disponible aún para las 0325Z de hoy" > public/data/taf-today.txt
+          fi
+          echo "Contenido final de taf-today.txt:"
+          cat public/data/taf-today.txt
 
-        if [ -n "$taf_line" ]; then
-          echo "$taf_line" > public/data/taf-today.txt
-        else
-          echo "TAF no disponible aún para las 0325Z de hoy" > public/data/taf-today.txt
-        fi
+      - name: Descargar operaciones.xlsx desde Drive
+        run: |
+          FILE_ID="1VCS87YR2-O4tJLaJJMVAZtBTPYEQG9fQ"
+          curl -L -o public/operaciones.xlsx "https://drive.google.com/uc?export=download&id=${FILE_ID}"
 
-        echo "Contenido final de taf-today.txt:"
-        cat public/data/taf-today.txt
+      - name: Configurar Git
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "github-actions@users.noreply.github.com"
 
-    - name: Descargar Excel desde Drive
-      run: |
-        FILE_ID="1VCS87YR2-O4tJLaJJMVAZtBTPYEQG9fQ"
-        curl -L -o public/operaciones.xlsx "https://drive.google.com/uc?export=download&id=${FILE_ID}"
-
-    - name: Configurar Git
-      run: |
-        git config user.name "sacomais"  # tu usuario real
-        git config user.email "sacomais69@gmail.com"
-
-    - name: Hacer commit y push
-      env:
-        GH_PAT: ${{ secrets.GH_PAT }}
-      run: |
-        git add public/data/taf-today.txt public/operaciones.xlsx
-        git commit -m "Update TAF y operaciones.xlsx $(date -u +'%Y-%m-%d')" || echo "No hay cambios que commitear"
-        git push https://x-access-token:${GH_PAT}@github.com/sacomais/taf-site.git main
+      - name: Commit y push cambios
+        run: |
+          git add public/data/taf-today.txt public/operaciones.xlsx
+          git commit -m "Update TAF y operaciones.xlsx $(date -u +'%Y-%m-%d')" || echo "No hay cambios que commitear"
+          git push origin main
