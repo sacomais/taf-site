@@ -1,13 +1,71 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>TAF MSLP</title>
+  <meta charset="UTF-8" />
+  <title>ATFM Dashboard v1.2</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+  <!-- Librerías externas -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <h1>Pronóstico TAF (MSLP)</h1>
-  <pre id="taf">Cargando TAF...</pre>
+  <h1>Operaciones diarias MSLP</h1>
 
+  <h2>TAF MSLP</h2>
+  <pre id="taf-container">Cargando TAF...</pre>
+
+
+  <div class="controls">
+    <label for="filtroAerolinea">Aerolínea:</label>
+    <select id="filtroAerolinea"></select>
+
+    <label for="filtroHora">Hora:</label>
+    <select id="filtroHora"></select>
+
+    <label for="filtroTipo">Operación:</label>
+    <select id="filtroTipo">
+      <option value="">Todas</option>
+      <option value="Llegada">Llegada</option>
+      <option value="Salida">Salida</option>
+    </select>
+
+    <button id="btnLimpiar">Limpiar selección</button>
+    <div id="total">Cargando datos...</div>
+  </div>
+
+  <h2>Operaciones por hora</h2>
+  <canvas id="grafico"></canvas>
+
+  <h2>Operaciones por 15 minutos</h2>
+  <canvas id="grafico15"></canvas>
+
+  <div id="detalleContainer" style="display:none;">
+    <h2>Detalle de operaciones</h2>
+    <p class="muted">Mostrando solo la selección actual.</p>
+    <table id="tablaDetalle">
+      <thead>
+        <tr>
+          <th>Aerolínea</th>
+          <th>Número de vuelo</th>
+          <th>Operación</th>
+          <th>Hora</th>
+          <th>Origen</th>
+          <th>Destino</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- Módulos de la app -->
+  <script src="js/app.config.js"></script>
+  <script src="js/app.state.js"></script>
+  <script src="js/app.utils.js"></script>
+  <script src="js/app.data.js"></script>
+  <script src="js/app.ui.js"></script>
+  <script src="js/app.charts.js"></script>
+  <script src="js/main.js"></script>
   <script src="js/app.taf.js"></script>
+
 </body>
 </html>

@@ -1,14 +1,16 @@
-// Función para cargar el TAF
+// Función para cargar el TAF de hoy
 async function loadTAF() {
   try {
-    const response = await fetch('data/taf-today.txt');
+    const response = await fetch('data/taf-today.txt'); // ruta relativa desde 'public/'
     if (!response.ok) throw new Error('No se pudo cargar el TAF');
+
     const tafText = await response.text();
-    document.getElementById('taf').innerText = tafText || "TAF no disponible por el momento.";
-  } catch (err) {
-    document.getElementById('taf').innerText = `Error: ${err.message}`;
+    document.getElementById('taf-container').textContent = tafText;
+  } catch (error) {
+    console.error(error);
+    document.getElementById('taf-container').textContent = 'TAF no disponible';
   }
 }
 
 // Ejecutar al cargar la página
-window.addEventListener('DOMContentLoaded', loadTAF);
+document.addEventListener('DOMContentLoaded', loadTAF);
