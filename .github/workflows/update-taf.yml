@@ -1,26 +1,34 @@
-name: update
+name: Update TAF y Operaciones
 
+# Triggers: diario a las 03:30 UTC y manual
 on:
   schedule:
-    - cron: '30 3 * * *' # 03:30 UTC todos los días
-  workflow_dispatch: # permite correr manualmente
+    - cron: '30 3 * * *'  # 03:30 UTC todos los días
+  workflow_dispatch:
 
 jobs:
-  update-site:
+  update:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GH_PAT }} # usa tu PAT para checkout
+          persist-credentials: false  # No usar el GITHUB_TOKEN
+          fetch-depth: 1
 
-      - name: Crear carpeta public/data
+      - name: Configurar git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Crear carpeta de datos
         run: mkdir -p public/data
 
       - name: Descargar TAF
         run: |
-          curl -s "https://tgftp.nws.noaa.gov/data/forecasts/taf/stations/MSLP.TXT" -o tmp_taf.txt
           day=$(date -u +'%d')
+          curl -s "https://tgftp.nws.noaa.gov/data/forecasts/taf/stations/MSLP.TXT" -o tmp_taf.txt
           taf_line=$(grep -m 1 "^TAF MSLP ${day}0325Z" tmp_taf.txt || true)
           if [ -n "$taf_line" ]; then
             echo "$taf_line" > public/data/taf-today.txt
@@ -30,18 +38,26 @@ jobs:
           echo "Contenido final de taf-today.txt:"
           cat public/data/taf-today.txt
 
-      - name: Descargar operaciones.xlsx desde Drive
+      - name: Descargar XLSX desde Google Drive
         run: |
           FILE_ID="1VCS87YR2-O4tJLaJJMVAZtBTPYEQG9fQ"
           curl -L -o public/operaciones.xlsx "https://drive.google.com/uc?export=download&id=${FILE_ID}"
 
-      - name: Configurar Git
+      - name: Verificar archivos descargados
         run: |
-          git config user.name "GitHub Actions"
-          git config user.email "github-actions@users.noreply.github.com"
+          if [ ! -s public/data/taf-today.txt ]; then
+            echo "Error: taf-today.txt vacío"
+            exit 1
+          fi
+          if [ ! -s public/operaciones.xlsx ]; then
+            echo "Error: operaciones.xlsx vacío"
+            exit 1
+          fi
 
-      - name: Commit y push cambios
+      - name: Commit y push solo si hay cambios
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
         run: |
           git add public/data/taf-today.txt public/operaciones.xlsx
-          git commit -m "Update TAF y operaciones.xlsx $(date -u +'%Y-%m-%d')" || echo "No hay cambios que commitear"
-          git push origin main
+          git diff --cached --quiet || git commit -m "Update TAF y operaciones.xlsx $(date -u +'%Y-%m-%d')"
+          git push https://x-access-token:${GH_PAT}@github.com/sacomais/taf-site.git main
