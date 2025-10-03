@@ -1,52 +1,52 @@
-﻿name: Update TAF Data
+name: Update TAF
 
 on:
   schedule:
-    # Se ejecuta todos los días a las 09:30 UTC
-    - cron: "30 9 * * *"
-  workflow_dispatch: # Permite ejecutar manualmente
+    # Ejecutar todos los días a las 03:30 UTC
+    - cron: "30 3 * * *"
+  workflow_dispatch: # Permite ejecución manual
+
+permissions:
+  contents: write   # Necesario para hacer git push
 
 jobs:
   update-taf:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Set up directories
+      - name: Create folders
         run: |
           mkdir -p public/data/history
 
-      - name: Download and extract TAF of 09:25 UTC
+      - name: Download full TAF file
         run: |
-          # Descargar TAF completo
           curl -s "https://tgftp.nws.noaa.gov/data/forecasts/taf/stations/MSLP.TXT" -o tmp_taf.txt
+          echo "Archivo descargado:"
+          head -n 20 tmp_taf.txt
 
-          # Mostrar resumen
-          echo "Archivo TAF descargado, líneas totales:"
-          wc -l tmp_taf.txt
-
-          # Día actual en UTC (dos dígitos)
-          day=$(date -u +%d)
-          echo "Buscando TAF para el día UTC: $day (09:25Z)"
-
-          # Filtrar TAF de las 09:25 UTC
-          taf_line=$(grep -m 1 "^TAF MSLP ${day}0925Z" tmp_taf.txt || true)
+      - name: Extract today's 0325 UTC TAF
+        run: |
+          day=$(date -u +'%d')
+          taf_line=$(grep -m 1 "^TAF MSLP ${day}0325Z" tmp_taf.txt || true)
 
           if [ -n "$taf_line" ]; then
             echo "$taf_line" > public/data/taf-today.txt
-            cp public/data/taf-today.txt public/data/history/taf-$(date +%F).txt
-            echo "TAF guardado correctamente"
+            echo "$taf_line" > "public/data/history/taf-$(date -u +'%Y-%m-%d').txt"
           else
-            echo "No se encontró el TAF de 09:25 UTC para hoy"
-            echo "TAF no disponible por el momento" > public/data/taf-today.txt
+            echo "TAF no disponible aún para las 0325Z de hoy" > public/data/taf-today.txt
           fi
 
-      - name: Commit and push updated TAF
+          echo "Contenido final del taf-today.txt:"
+          cat public/data/taf-today.txt
+
+      - name: Commit and Push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add public/data/taf-today.txt public/data/history/
-          git commit -m "Update TAF $(date +%F)" || echo "No changes to commit"
-          git push origin main
+          git add public/data/
+          git commit -m "Update TAF $(date -u +'%Y-%m-%d')" || echo "No changes to commit"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
