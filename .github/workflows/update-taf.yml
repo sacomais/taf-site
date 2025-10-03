@@ -2,9 +2,8 @@ name: Update TAF and XLSX
 
 on:
   schedule:
-    # Ejecuta todos los días a las 09:30 UTC
-    - cron: '30 4 * * *'
-  workflow_dispatch:  # Permite correr manualmente
+    - cron: '30 4 * * *'  # 0930 UTC cada día
+  workflow_dispatch:      # permite dispararlo manualmente
 
 jobs:
   update:
@@ -14,28 +13,34 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Set up Git
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-
-      - name: Download TAF from NOAA
+      - name: Set up directories
         run: |
           mkdir -p public/data
+
+      - name: Download TAF
+        run: |
           curl -s "https://tgftp.nws.noaa.gov/data/forecasts/taf/stations/MSLP.TXT" -o tmp_taf.txt
           day=$(date -u +'%d')
           taf_line=$(grep -m 1 "^TAF MSLP ${day}0325Z" tmp_taf.txt || true)
+          
           if [ -n "$taf_line" ]; then
             echo "$taf_line" > public/data/taf-today.txt
           else
             echo "TAF no disponible aún para las 0325Z de hoy" > public/data/taf-today.txt
           fi
+          echo "Contenido final de taf-today.txt:"
           cat public/data/taf-today.txt
 
-      - name: Download XLSX from Drive
+      - name: Download operaciones.xlsx from Google Drive
         run: |
-          XLSX_ID="1VCS87YR2-O4tJLaJJMVAZtBTPYEQG9fQ"
-          curl -L -o public/operaciones.xlsx "https://docs.google.com/uc?export=download&id=${XLSX_ID}"
+          # Reemplaza FILE_ID con tu ID real
+          FILE_ID="1VCS87YR2-O4tJLaJJMVAZtBTPYEQG9fQ"
+          curl -L -o public/operaciones.xlsx "https://drive.google.com/uc?export=download&id=${FILE_ID}"
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Commit and push changes
         env:
