@@ -1,52 +1,41 @@
-name: Update TAF
+name: Update TAF and Operaciones
 
 on:
   schedule:
-    # Ejecutar todos los días a las 03:30 UTC
+    # Todos los días a las 03:30 UTC
     - cron: "30 3 * * *"
-  workflow_dispatch: # Permite ejecución manual
+  workflow_dispatch: # Para ejecutarlo manualmente
 
 permissions:
-  contents: write   # Necesario para hacer git push
+  contents: write
 
 jobs:
-  update-taf:
+  update-data:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-      - name: Create folders
+      - name: Set up Git
         run: |
-          mkdir -p public/data/history
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Download full TAF file
+      # Descargar TAF publicado a las 03:25Z
+      - name: Download TAF file
         run: |
-          curl -s "https://tgftp.nws.noaa.gov/data/forecasts/taf/stations/MSLP.TXT" -o tmp_taf.txt
-          echo "Archivo descargado:"
-          head -n 20 tmp_taf.txt
+          curl -s "https://tgftp.nws.noaa.gov/data/forecasts/taf/stations/MSLP.TXT" -o public/taf.txt
 
-      - name: Extract today's 0325 UTC TAF
+      # Descargar operaciones.xlsx desde Google Drive
+      - name: Download operaciones.xlsx from Google Drive
         run: |
-          day=$(date -u +'%d')
-          taf_line=$(grep -m 1 "^TAF MSLP ${day}0325Z" tmp_taf.txt || true)
+          FILE_ID="1VCS87YR2-O4tJLaJJMVAZtBTPYEQG9fQ"
+          curl -L -o public/operaciones.xlsx "https://drive.google.com/uc?export=download&id=${FILE_ID}"
 
-          if [ -n "$taf_line" ]; then
-            echo "$taf_line" > public/data/taf-today.txt
-            echo "$taf_line" > "public/data/history/taf-$(date -u +'%Y-%m-%d').txt"
-          else
-            echo "TAF no disponible aún para las 0325Z de hoy" > public/data/taf-today.txt
-          fi
-
-          echo "Contenido final del taf-today.txt:"
-          cat public/data/taf-today.txt
-
-      - name: Commit and Push
+      # Commit y push de cambios
+      - name: Commit and Push changes
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add public/data/
-          git commit -m "Update TAF $(date -u +'%Y-%m-%d')" || echo "No changes to commit"
+          git add public/taf.txt public/operaciones.xlsx
+          git commit -m "Auto-update TAF y operaciones.xlsx ($(date -u +"%Y-%m-%d %H:%M:%S UTC"))" || echo "No changes to commit"
           git push
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
