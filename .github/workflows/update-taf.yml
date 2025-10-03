@@ -1,49 +1,47 @@
-name: Update TAF and XLSX
+name: Update TAF y Excel
 
 on:
   schedule:
-    # Se ejecuta todos los días a las 0930 UTC
-    - cron: '30 9 * * *'
-  workflow_dispatch: # permite ejecutar manualmente
+    # Se ejecuta todos los días a las 09:30 UTC
+    - cron: '00 4 * * *'
+  workflow_dispatch: # permite ejecutarlo manualmente
 
 jobs:
   update:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout del repo
         uses: actions/checkout@v4
+        with:
+          persist-credentials: true
 
-      - name: Create folders
+      - name: Configurar Git
         run: |
-          mkdir -p public/data/history
+          git config user.name "github-actions[bot]"
+          git config user.email "actions@github.com"
 
-      - name: Download TAF
+      - name: Crear carpeta data si no existe
+        run: mkdir -p public/data
+
+      - name: Descargar TAF
         run: |
           curl -s "https://tgftp.nws.noaa.gov/data/forecasts/taf/stations/MSLP.TXT" -o tmp_taf.txt
           day=$(date -u +'%d')
           taf_line=$(grep -m 1 "^TAF MSLP ${day}0325Z" tmp_taf.txt || true)
           if [ -n "$taf_line" ]; then
             echo "$taf_line" > public/data/taf-today.txt
-            echo "$taf_line" > "public/data/history/taf-$(date -u +'%Y-%m-%d').txt"
           else
             echo "TAF no disponible aún para las 0325Z de hoy" > public/data/taf-today.txt
           fi
-          echo "Contenido final del taf-today.txt:"
-          cat public/data/taf-today.txt
 
-      - name: Download XLSX from Google Drive
+      - name: Descargar Excel operaciones.xlsx desde Drive
         run: |
-          # Reemplaza FILE_ID por tu ID de archivo
-          FILE_ID="1VCS87YR2-O4tJLaJJMVAZtBTPYEQG9fQ"
-          curl -L "https://docs.google.com/uc?export=download&id=$FILE_ID" -o public/operaciones.xlsx
+          # Reemplaza URL_FINAL con tu enlace de descarga directa
+          curl -L -o public/operaciones.xlsx "URL_FINAL"
 
-      - name: Commit and Push changes
+      - name: Commit y push cambios
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "actions@github.com"
-          git add public/data/taf-today.txt public/operaciones.xlsx public/data/history/*.txt
-          git commit -m "Update TAF and XLSX $(date -u +'%Y-%m-%d')" || echo "No changes to commit"
-          git push https://$PAT_TOKEN@github.com/sacomais/taf-site.git main
-        env:
-          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+          git add public/data/taf-today.txt public/operaciones.xlsx
+          git commit -m "Update TAF y Excel $(date -u +'%Y-%m-%d')" || echo "No hay cambios para commitear"
+          git push origin main
