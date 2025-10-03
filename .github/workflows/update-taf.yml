@@ -1,8 +1,9 @@
-name: update-taf
+name: Update TAF
 
 on:
   schedule:
-    - cron: '30 9 * * *'  # 0930 UTC todos los días
+    # Todos los días a las 09:30 UTC
+    - cron: '30 9 * * *'
   workflow_dispatch:
 
 jobs:
@@ -10,51 +11,50 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: Set up directories
-        run: |
-          mkdir -p public/data/history
+    - name: Create history folder
+      run: mkdir -p public/data/history
 
-      - name: Download TAF
-        run: |
-          curl -s "https://tgftp.nws.noaa.gov/data/forecasts/taf/stations/MSLP.TXT" -o tmp_taf.txt
-          echo "Archivo descargado:"
-          head -n 20 tmp_taf.txt
+    - name: Download TAF
+      run: |
+        curl -s "https://tgftp.nws.noaa.gov/data/forecasts/taf/stations/MSLP.TXT" -o tmp_taf.txt
+        echo "Archivo TAF descargado:"
+        head -n 20 tmp_taf.txt
 
-      - name: Extract today's TAF 0325Z
-        run: |
-          day=$(date -u +'%d')
-          taf_line=$(grep -m 1 "^TAF MSLP ${day}0325Z" tmp_taf.txt || true)
+    - name: Extract today's TAF 0325Z
+      run: |
+        day=$(date -u +'%d')
+        taf_line=$(grep -m 1 "^TAF MSLP ${day}0325Z" tmp_taf.txt || true)
 
-          if [ -n "$taf_line" ]; then
-            echo "$taf_line" > public/data/taf-today.txt
-            echo "$taf_line" > "public/data/history/taf-$(date -u +'%Y-%m-%d').txt"
-          else
-            echo "TAF no disponible aún para las 0325Z de hoy" > public/data/taf-today.txt
-          fi
+        if [ -n "$taf_line" ]; then
+          echo "$taf_line" > public/data/taf-today.txt
+          echo "$taf_line" > "public/data/history/taf-$(date -u +'%Y-%m-%d').txt"
+        else
+          echo "TAF no disponible aún para las 0325Z de hoy" > public/data/taf-today.txt
+        fi
 
-          echo "Contenido final del taf-today.txt:"
-          cat public/data/taf-today.txt
+        echo "Contenido final de taf-today.txt:"
+        cat public/data/taf-today.txt
 
-      - name: Download operaciones.xlsx
-        run: |
-          # Link de descarga directa de Google Drive
-          curl -L -o public/operaciones.xlsx "https://drive.google.com/uc?export=download&id=1VCS87YR2-O4tJLaJJMVAZtBTPYEQG9fQ"
+    - name: Download operaciones.xlsx from Google Drive
+      run: |
+        FILE_ID="1VCS87YR2-O4tJLaJJMVAZtBTPYEQG9fQ"
+        curl -L "https://docs.google.com/uc?export=download&id=${FILE_ID}" -o public/operaciones.xlsx
 
-      - name: Commit & push changes
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          git add public/data/taf-today.txt
-          if compgen -G "public/data/history/*.txt" > /dev/null; then
-            git add public/data/history/*.txt
-          fi
-          git add public/operaciones.xlsx
-          
-          git commit -m "Update TAF and operaciones.xlsx $(date -u +'%Y-%m-%d')" || echo "No changes to commit"
-          git push origin main
+    - name: Commit & push changes
+      env:
+        PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        
+        git add public/data/taf-today.txt
+        if compgen -G "public/data/history/*.txt" > /dev/null; then
+          git add public/data/history/*.txt
+        fi
+        git add public/operaciones.xlsx
+        
+        git commit -m "Update TAF and operaciones.xlsx $(date -u +'%Y-%m-%d')" || echo "No changes to commit"
+        git push https://x-access-token:${PAT_TOKEN}@github.com/sacomais/taf-site.git main
