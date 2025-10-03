@@ -2,27 +2,26 @@ name: Update TAF and XLSX
 
 on:
   schedule:
-    - cron: '30 4 * * *' # 0430 UTC cada día
-  workflow_dispatch: # permite ejecutar manualmente
+    # Ejecuta todos los días a las 09:30 UTC
+    - cron: '30 4 * * *'
+  workflow_dispatch:  # Permite correr manualmente
 
 jobs:
-  update-taf:
+  update:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Set up Git
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git remote set-url origin https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
 
-      - name: Create data folder
-        run: mkdir -p public/data
-
-      - name: Download TAF
+      - name: Download TAF from NOAA
         run: |
+          mkdir -p public/data
           curl -s "https://tgftp.nws.noaa.gov/data/forecasts/taf/stations/MSLP.TXT" -o tmp_taf.txt
           day=$(date -u +'%d')
           taf_line=$(grep -m 1 "^TAF MSLP ${day}0325Z" tmp_taf.txt || true)
@@ -31,15 +30,17 @@ jobs:
           else
             echo "TAF no disponible aún para las 0325Z de hoy" > public/data/taf-today.txt
           fi
+          cat public/data/taf-today.txt
 
-      - name: Download XLSX from Google Drive
+      - name: Download XLSX from Drive
         run: |
-          curl -L -o public/operaciones.xlsx "https://drive.google.com/uc?export=download&id=1VCS87YR2-O4tJLaJJMVAZtBTPYEQG9fQ"
+          XLSX_ID="1VCS87YR2-O4tJLaJJMVAZtBTPYEQG9fQ"
+          curl -L -o public/operaciones.xlsx "https://docs.google.com/uc?export=download&id=${XLSX_ID}"
 
-      - name: Commit changes
+      - name: Commit and push changes
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
         run: |
           git add public/data/taf-today.txt public/operaciones.xlsx
-          git commit -m "Update TAF $(date -u +'%Y-%m-%d')" || echo "No changes to commit"
-
-      - name: Push changes
-        run: git push origin main
+          git diff --cached --quiet || git commit -m "Update TAF and XLSX $(date -u +'%Y-%m-%d')"
+          git push https://x-access-token:${GH_PAT}@github.com/sacomais/taf-site.git main
