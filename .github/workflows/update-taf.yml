@@ -1,9 +1,10 @@
 name: Update TAF & XLSX
 
 on:
+  workflow_dispatch: # permite ejecutar manualmente desde GitHub
   schedule:
-    # Se ejecuta todos los días a las 0930 UTC
     - cron: '30 4 * * *'
+
 
 jobs:
   update:
