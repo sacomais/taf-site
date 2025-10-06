@@ -1,9 +1,8 @@
-name: Update TAF y Operaciones
+name: Update TAF and XLSX
 
-# Triggers: diario a las 03:30 UTC y manual
 on:
   schedule:
-    - cron: '30 3 * * *'  # 03:30 UTC todos los días
+    - cron: '0 5 * * *'   # Corre todos los días a las 05:00 UTC
   workflow_dispatch:
 
 jobs:
@@ -11,53 +10,48 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          persist-credentials: false  # No usar el GITHUB_TOKEN
-          fetch-depth: 1
+          token: ${{ secrets.GH_PAT }}
 
-      - name: Configurar git
+      - name: Setup folders
+        run: mkdir -p public/data
+
+      - name: Descargar TAF completo (solo si es de 03Z)
+        run: |
+          curl -s "https://tgftp.nws.noaa.gov/data/forecasts/taf/stations/MSLP.TXT" -o tmp_taf.txt
+
+          # Extraer el bloque completo del último TAF
+          taf_block=$(awk '/^TAF MSLP/{flag=1} flag{print} /^$/{if(flag){exit}}' tmp_taf.txt)
+
+          # Validar si la hora de emisión está entre 0300Z y 0359Z
+          if echo "$taf_block" | head -1 | grep -qE "03[0-5][0-9]Z"; then
+            echo "$taf_block" > public/data/taf-today.txt
+            echo "✅ TAF de 03Z capturado correctamente"
+          else
+            echo "⚠️ No se encontró un TAF válido entre 03Z y 04Z" > public/data/taf-today.txt
+          fi
+
+          echo "Contenido final de taf-today.txt:"
+          cat public/data/taf-today.txt
+
+      - name: Descargar operaciones.xlsx desde Google Drive
+        run: |
+          file_id="1VCS87YR2-O4tJLaJJMVAZtBTPYEQG9fQ"
+          curl -L "https://drive.google.com/uc?export=download&id=${file_id}" -o public/operaciones.xlsx
+
+      - name: Configurar Git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Crear carpeta de datos
-        run: mkdir -p public/data
-
-      - name: Descargar TAF
+      - name: Commit y Push cambios
         run: |
-          day=$(date -u +'%d')
-          curl -s "https://tgftp.nws.noaa.gov/data/forecasts/taf/stations/MSLP.TXT" -o tmp_taf.txt
-          taf_line=$(grep -m 1 "^TAF MSLP ${day}0325Z" tmp_taf.txt || true)
-          if [ -n "$taf_line" ]; then
-            echo "$taf_line" > public/data/taf-today.txt
+          git add public/data/taf-today.txt public/operaciones.xlsx || true
+          if git diff --cached --quiet; then
+            echo "No hay cambios para commitear."
           else
-            echo "TAF no disponible aún para las 0325Z de hoy" > public/data/taf-today.txt
+            git commit -m "Update TAF and XLSX $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+            git push origin main
           fi
-          echo "Contenido final de taf-today.txt:"
-          cat public/data/taf-today.txt
-
-      - name: Descargar XLSX desde Google Drive
-        run: |
-          FILE_ID="1VCS87YR2-O4tJLaJJMVAZtBTPYEQG9fQ"
-          curl -L -o public/operaciones.xlsx "https://drive.google.com/uc?export=download&id=${FILE_ID}"
-
-      - name: Verificar archivos descargados
-        run: |
-          if [ ! -s public/data/taf-today.txt ]; then
-            echo "Error: taf-today.txt vacío"
-            exit 1
-          fi
-          if [ ! -s public/operaciones.xlsx ]; then
-            echo "Error: operaciones.xlsx vacío"
-            exit 1
-          fi
-
-      - name: Commit y push solo si hay cambios
-        env:
-          GH_PAT: ${{ secrets.GH_PAT }}
-        run: |
-          git add public/data/taf-today.txt public/operaciones.xlsx
-          git diff --cached --quiet || git commit -m "Update TAF y operaciones.xlsx $(date -u +'%Y-%m-%d')"
-          git push https://x-access-token:${GH_PAT}@github.com/sacomais/taf-site.git main
