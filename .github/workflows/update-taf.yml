@@ -30,7 +30,7 @@ jobs:
             echo "$taf_block" > public/data/taf-today.txt
             echo "✅ TAF de 03Z capturado correctamente"
           else
-            echo "⚠️ No se encontró un TAF válido entre 03Z y 04Z" > public/data/taf-today.txt
+            echo "NIL" > public/data/taf-today.txt
           fi
 
           echo "Contenido final de taf-today.txt:"
