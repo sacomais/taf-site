@@ -21,6 +21,11 @@
       "startDate": "2025-01-01T00:00:00Z"
     },
     {
+      "notamNumber": "A1646/26",
+      "icaoMessage": "MSLP A1646/26 International 08/14/2026 0500 08/16/2026 1100 TWY F BTN ACFT STAND NR 05 INTL PAX APN AND ACFT STAND NR 01 INTL CARGO APN CLSD",
+      "startDate": "2025-01-01T00:00:00Z"
+    },
+    {
       "notamNumber": "A1641/26",
       "icaoMessage": "MSLP A1641/26 International 08/14/2026 0300 08/14/2026 1050 TWY E BTN TWY A AND RWY 07/25 CLSD",
       "startDate": "2025-01-01T00:00:00Z"
