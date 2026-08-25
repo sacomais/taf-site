@@ -14,11 +14,6 @@
       "notamNumber": "A1773/26",
       "icaoMessage": "MSLP A1773/26 International 08/24/2026 1917 08/31/2026 0559 ACFT STANDS NR1 AND NR2 INTL CARGO APN CLSD",
       "startDate": "2025-01-01T00:00:00Z"
-    },
-    {
-      "notamNumber": "A1778/26",
-      "icaoMessage": "MSLP A1778/26 International 08/25/2026 1400 08/25/2026 2000 U.S. MILITARY APN ACCESS CLSD",
-      "startDate": "2025-01-01T00:00:00Z"
     }
   ]
 }
