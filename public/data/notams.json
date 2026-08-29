@@ -11,6 +11,11 @@
       "startDate": "2025-01-01T00:00:00Z"
     },
     {
+      "notamNumber": "A1820/26",
+      "icaoMessage": "MSLP A1820/26 International 08/30/2026 2100 09/01/2026 1530 UNMANNED AIRCRAFT WILL TAKE PLACE F)9000FT AMSL G)10000FT AMSL",
+      "startDate": "2025-01-01T00:00:00Z"
+    },
+    {
       "notamNumber": "A1773/26",
       "icaoMessage": "MSLP A1773/26 International 08/24/2026 1917 08/31/2026 0559 ACFT STANDS NR1 AND NR2 INTL CARGO APN CLSD",
       "startDate": "2025-01-01T00:00:00Z"
